@@ -5,6 +5,7 @@ import {
   format,
   getTime,
   previousMonday,
+  nextSunday,
   eachMonthOfInterval,
   hoursToMilliseconds,
   eachDayOfInterval,
@@ -29,9 +30,9 @@ const getStartDayDate = () => {
   const dateBack = msMondayTime - msBack;
   const dateStartGrid = format(dateBack, 'yyyy-MM-dd');
   return dateStartGrid;
-}
+};
 
-const getPrevDays = () => {
+const getPrevWeeksDays = () => {
   const dateStartGrid = getStartDayDate();
   const formatMonday = getFirstWeekDay();
   const result = eachDayOfInterval({
@@ -51,6 +52,19 @@ const getPrevMonths = () => {
   });
   return result
     .slice(0, result.length - 1);
+};
+
+const getCurrentWeekDays = () => {
+  const firstDay = getFirstWeekDay();
+  const [year, month, day] = firstDay.split('-');
+  const lastDay = nextSunday(new Date(year, month - 1, day));
+  const formatLastDay = format(new Date(lastDay), 'yyyy-MM-dd');
+
+  const result = eachDayOfInterval({
+    start: new Date(firstDay),
+    end: new Date(formatLastDay)
+  });
+  return result;
 };
 
 const renderDays = (arrayDays) => Object
@@ -82,25 +96,29 @@ const Frame = (props) => {
   const firstMonth = formattedMonths.shift();
   formattedMonths.push(firstMonth);
 
-  const formattedDays = getPrevDays().reduce((acc, k, i) => {
-    const dateToString = format(k, 'yyyy-MM-dd');
+  const allDays = getPrevWeeksDays().concat(getCurrentWeekDays())
+
+  const formattedDays = allDays.reduce((acc, key, i) => {
+    const dateToString = format(key, 'yyyy-MM-dd');
     acc[dateToString] = 0;
     return acc;
   }, {});
 
   const getNumberDate = (dateString) => Number(dateString.replaceAll('-', ''));
 
-  const slicedReceived = () => {
-    const numberDateStartGrid = getNumberDate(getStartDayDate())
+  const slicedReceivedDates = () => {
+    const numberDateStartGrid = getNumberDate(getStartDayDate());
 
     const result = Object
       .entries(dates)
-      .filter(([key,]) => getNumberDate(key) >= numberDateStartGrid)
+      .filter(([key,]) => getNumberDate(key) >= numberDateStartGrid);
 
     return Object.fromEntries(result);
-  }
+  };
 
-  const result = { ...formattedDays, ...slicedReceived(dates) }
+  const recievedDays = slicedReceivedDates(dates)
+
+  const resultDays = { ...formattedDays, ...recievedDays};
 
   return (
     <div className="frame">
@@ -110,12 +128,17 @@ const Frame = (props) => {
       <div className="frame__calendar">
         <WeekDays />
         <div className="grid__container">
-          {renderDays(result)}
+          {renderDays(resultDays)}
         </div>
       </div>
       <div className="frame__legend">
         <div>Меньше</div>
-        {[0, 9, 19, 29, 30].map((k, i) => <React.Fragment key={i}><Day contributions={k} /></React.Fragment>)}
+        {[0, 9, 19, 29, 30]
+          .map((k, i) => (
+            <React.Fragment key={i}>
+              <Day contributions={k} />
+            </React.Fragment>
+          ))}
         <div>Больше</div>
       </div>
     </div>
