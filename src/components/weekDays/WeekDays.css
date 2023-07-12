@@ -1,0 +1,12 @@
+.week__days {
+  display: flex;
+  flex-direction: column;
+  align-content: flex-start;
+  gap: 20px;
+}
+
+.day-name {
+  font-size: 12px;
+  margin: 0;
+  padding: 0;
+}
