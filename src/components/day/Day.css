@@ -1,0 +1,35 @@
+.day {
+  display: block;
+  position: relative;
+  height: 14px;
+  width: 14px;
+  border: 1px solid transparent;
+}
+
+.day:hover {
+  border: 1px solid #00000080;
+}
+
+.day:active {
+  border: 1px solid #000000E5;
+}
+
+.empty {
+  background-color: #EDEDED;
+}
+
+.s {
+  background-color: #ACD5F2;
+}
+
+.m {
+  background-color: #7FA8C9;
+}
+
+.l {
+  background-color: #527BA0;
+}
+
+.xl {
+  background-color: #254E77;
+}
