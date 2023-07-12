@@ -1,10 +1,11 @@
 import './Frame.css';
-import Day from '../day/Day';
 import React from 'react';
+import { Tooltip } from 'react-tooltip';
 import {
   format,
   getTime,
   previousMonday,
+  previousSunday,
   nextSunday,
   eachMonthOfInterval,
   hoursToMilliseconds,
@@ -14,64 +15,86 @@ import { ru } from 'date-fns/locale';
 
 import WeekDays from '../weekDays/WeekDays';
 import Month from '../month/Month';
-import { Tooltip } from 'react-tooltip';
+import Day from '../day/Day';
 
-const getFirstWeekDay = () => {
-  const currentDate = format(new Date(), 'yyyy-MM-dd');
-  const previousMon = previousMonday(new Date(currentDate));
-  const formatMonday = format(new Date(previousMon), 'yyyy-MM-dd');
-  return formatMonday;
-};
+const getCurrentDate = () => format(new Date(), 'yyyy-MM-dd');
 
-const getStartDayDate = () => {
-  const formatMonday = getFirstWeekDay();
-  const msMondayTime = getTime(new Date(formatMonday));
-  const msBack = hoursToMilliseconds(350 * 24);
-  const dateBack = msMondayTime - msBack;
-  const dateStartGrid = format(dateBack, 'yyyy-MM-dd');
-  return dateStartGrid;
-};
+const getCurrentWeek = () => {
+  const currentDate = getCurrentDate();
+  const [year, month, day] = currentDate.split('-');
 
-const getPrevWeeksDays = () => {
-  const dateStartGrid = getStartDayDate();
-  const formatMonday = getFirstWeekDay();
-  const result = eachDayOfInterval({
-    start: new Date(dateStartGrid),
-    end: new Date(formatMonday)
-  });
-  return result
-    .slice(0, result.length - 1);
-};
-
-const getPrevMonths = () => {
-  const dateStartGrid = getStartDayDate();
-  const formatMonday = getFirstWeekDay();
-  const result = eachMonthOfInterval({
-    start: new Date(dateStartGrid),
-    end: new Date(formatMonday)
-  });
-  return result
-    .slice(0, result.length - 1);
-};
-
-const getCurrentWeekDays = () => {
-  const firstDay = getFirstWeekDay();
-  const [year, month, day] = firstDay.split('-');
+  const firstDay = previousMonday(new Date(year, month - 1, day));
   const lastDay = nextSunday(new Date(year, month - 1, day));
-  const formatLastDay = format(new Date(lastDay), 'yyyy-MM-dd');
 
   const result = eachDayOfInterval({
     start: new Date(firstDay),
-    end: new Date(formatLastDay)
+    end: new Date(lastDay)
   });
   return result;
+};
+
+const getFirstGridDate = () => {
+  const currentDate = getCurrentDate();
+  const [year, month, day] = currentDate.split('-');
+  const lastDay = previousSunday(new Date(year, month - 1, day));
+
+  const msLastSunday = getTime(new Date(lastDay));
+  const msTimeBack = hoursToMilliseconds(349 * 24);
+  const msFirstGridDate = msLastSunday - msTimeBack;
+
+  const firstGridDate = format(msFirstGridDate, 'yyyy-MM-dd');
+
+  return firstGridDate;
+};
+
+const getPrevWeeks = () => {
+  const currentDate = getCurrentDate();
+  const [year, month, day] = currentDate.split('-');
+
+  const firstDay = getFirstGridDate();
+  const lastDay = previousSunday(new Date(year, month - 1, day));
+
+  const result = eachDayOfInterval({
+    start: new Date(firstDay),
+    end: new Date(lastDay)
+  });
+
+  return result;
+};
+
+const getPrevMonths = () => {
+  const currentDate = getCurrentDate();
+  const [year, month, day] = currentDate.split('-');
+
+  const result = eachMonthOfInterval({
+    start: new Date(year - 1, month, day),
+    end: new Date(year, month - 1, day)
+  });
+
+  return result;
+};
+
+const getNumberType = (dateString) => Number(dateString.replaceAll('-', ''));
+
+const slicedReceivedDates = (dates) => {
+  const numberFirstGridDate = getNumberType(getFirstGridDate());
+
+  const result = Object
+    .entries(dates)
+    .filter(([key,]) => getNumberType(key) >= numberFirstGridDate);
+
+  return Object.fromEntries(result);
 };
 
 const renderDays = (arrayDays) => Object
   .entries(arrayDays)
   .map(([date, contributions], i) => {
     const [year, month, day] = date.split('-');
-    const formattedDate = !!date ? format(new Date(year, month - 1, day), 'EEEE, dd MMMM, yyyy', { locale: ru }) : '';
+
+    const formattedDate = !!date
+      ? format(new Date(year, month - 1, day), 'EEEE, dd MMMM, yyyy', { locale: ru })
+      : '';
+
     return (
       <React.Fragment key={i}>
         <Tooltip
@@ -85,40 +108,26 @@ const renderDays = (arrayDays) => Object
         </Tooltip>
         <Day id={i} contributions={contributions} />
       </React.Fragment>
-    )
+    );
   });
 
-const Frame = (props) => {
-  const { dates } = props;
+const Frame = ({ dates }) => {
+  const formattedMonths = getPrevMonths()
+    .map((m) => format(m, 'MMM', { locale: ru }));
 
-  const formattedMonths = getPrevMonths().map((m) => format(m, 'MMM', { locale: ru }));
+  const allGridDays = getPrevWeeks().concat(getCurrentWeek());
 
-  const firstMonth = formattedMonths.shift();
-  formattedMonths.push(firstMonth);
+  const formattedDays = allGridDays
+    .reduce((acc, key, i) => {
+      const dateToString = format(key, 'yyyy-MM-dd');
+      acc[dateToString] = 0;
 
-  const allDays = getPrevWeeksDays().concat(getCurrentWeekDays())
+      return acc;
+    }, {});
 
-  const formattedDays = allDays.reduce((acc, key, i) => {
-    const dateToString = format(key, 'yyyy-MM-dd');
-    acc[dateToString] = 0;
-    return acc;
-  }, {});
+  const recievedDays = slicedReceivedDates(dates);
 
-  const getNumberDate = (dateString) => Number(dateString.replaceAll('-', ''));
-
-  const slicedReceivedDates = () => {
-    const numberDateStartGrid = getNumberDate(getStartDayDate());
-
-    const result = Object
-      .entries(dates)
-      .filter(([key,]) => getNumberDate(key) >= numberDateStartGrid);
-
-    return Object.fromEntries(result);
-  };
-
-  const recievedDays = slicedReceivedDates(dates)
-
-  const resultDays = { ...formattedDays, ...recievedDays};
+  const unionDays = { ...formattedDays, ...recievedDays };
 
   return (
     <div className="frame">
@@ -128,7 +137,7 @@ const Frame = (props) => {
       <div className="frame__calendar">
         <WeekDays />
         <div className="grid__container">
-          {renderDays(resultDays)}
+          {renderDays(unionDays)}
         </div>
       </div>
       <div className="frame__legend">
