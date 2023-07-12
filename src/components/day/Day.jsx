@@ -1,10 +1,7 @@
 import './Day.css';
-import Tooltip from '../tooltip/Tooltip';
-import { useState } from 'react';
 
 const Day = (props) => {
-  const { date, contributions } = props;
-  const [showTooltip, setShowTooltip] = useState(false);
+  const { id, contributions } = props;
 
   const s = (contributions) => {
     if (contributions === 0) {
@@ -21,9 +18,10 @@ const Day = (props) => {
   };
 
   return (
-    <div onClick={() => setShowTooltip(true)} className={`day ${s(contributions)}`}>
-      {showTooltip ? <Tooltip date={date} contributions={contributions} /> : ''}
-    </div>
+    // eslint-disable-next-line jsx-a11y/anchor-is-valid
+    <a data-tooltip-id={id}>
+    <div className={`day ${s(contributions)}`} />
+    </a>
   );
 };
 

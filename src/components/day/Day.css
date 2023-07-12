@@ -4,6 +4,7 @@
   height: 14px;
   width: 14px;
   border: 1px solid transparent;
+  z-index: 1;
 }
 
 .day:hover {
